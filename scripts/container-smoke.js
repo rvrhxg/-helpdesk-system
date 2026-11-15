@@ -9,9 +9,9 @@ let containerCreated=false,volumeCreated=false;
 try {
   docker('volume','create',volume);volumeCreated=true;
   docker('run','-d','--name',name,'-p','127.0.0.1::3000','-v',`${volume}:/data`,'helpdesk-test');containerCreated=true;
-  const address=docker('port',name,'3000/tcp').split('\n')[0];
-  const base=`http://${address}`;
+  let base;
   const wait=async()=>{
+    base=`http://${docker('port',name,'3000/tcp').split('\n')[0]}`;
     for(let i=0;i<40;i++){
       try{const r=await fetch(base+'/api/health',{signal:AbortSignal.timeout(1000)});if(r.ok)return;}catch{}
       await new Promise(resolve=>setTimeout(resolve,250));
@@ -31,6 +31,9 @@ try {
   assert.equal(recovered.status,200);assert.equal((await recovered.json()).subject,'Container persistence');
   assert.equal(docker('exec',name,'id','-u'),'1000');
   console.log('Container HTTP, non-root user and persistent-volume checks passed.');
+}catch(error){
+  if(containerCreated) console.error(docker('logs',name));
+  throw error;
 }finally{
   if(containerCreated)docker('rm','-f',name);
   if(volumeCreated)docker('volume','rm',volume);
