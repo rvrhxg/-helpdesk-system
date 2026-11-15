@@ -40,6 +40,7 @@ try {
   await page.getByLabel('Статус обращения').selectOption('resolved');
   await page.locator('#detail .muted').filter({hasText:'Решено'}).waitFor();
   await page.getByRole('button',{name:'Все обращения'}).click();
+  await page.locator('#dashboard').waitFor({state:'visible'});
   await page.setViewportSize({width:390,height:844});
   await page.screenshot({path:'screenshots/dashboard-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);
