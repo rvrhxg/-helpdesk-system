@@ -1,0 +1,12 @@
+services:
+  helpdesk:
+    build: .
+    ports:
+      - "127.0.0.1:3000:3000"
+    environment:
+      APP_ORIGIN: http://localhost:3000
+    volumes:
+      - helpdesk-data:/data
+    restart: unless-stopped
+volumes:
+  helpdesk-data:
