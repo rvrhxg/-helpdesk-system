@@ -6,3 +6,6 @@ node_modules/
 coverage/
 .relay-test-*/
 /screenshots/
+
+/private-notes/
+/INTERVIEW.md
