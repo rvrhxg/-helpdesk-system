@@ -57,3 +57,6 @@ node --check public/app.js
 
 См. [архитектуру и подготовку к интервью](docs/ARCHITECTURE.md), [REST API](docs/API.md), [демонстрацию](docs/DEMO.md) и [состояние приёмки](docs/ACCEPTANCE.md).
 
+
+
+[Общее портфолио: проекты, запуск, скриншоты и вопросы для собеседования](docs/PORTFOLIO.md). Все проекты — самостоятельные учебные MVP; production-готовность не заявляется.
