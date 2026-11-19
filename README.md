@@ -64,3 +64,7 @@ Calendar hours UTC from ticket creation, first response / resolution: low 24/120
 Ticket GET responses include sla deadlines, elapsed_minutes, overdue and completed flags. Staff-only GET /api/analytics reports team-wide completed/pending counts, current overdue counts, breaches, average completed duration and on-time percentage (null with no completed sample). Dashboard indicators refresh on page load/refresh; analytics ignores list filters. These are team metrics, not individual performance rankings.
 
 Startup adds nullable first_response_at/resolved_at columns transactionally and preserves all existing records. Legacy response timestamps are inferred from comments by users who are currently staff; legacy resolution uses updated_at. Historical role changes and missing events limit backfill accuracy. New response timestamps are fixed at the action. Demo data is fictional.
+
+![SLA analytics with fictional records](docs/screenshots/sla-analytics-desktop.png)
+
+Verification: [CI44501327397](https://github.com/rvrhxg/-helpdesk-system/actions/runs/44501327397) passed unit/HTTP tests, Docker build/runtime and Chromium workflows including mobile width assertion. Screenshots captured by that run and visually reviewed.
