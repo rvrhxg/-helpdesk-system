@@ -25,6 +25,9 @@ export function seedDemo(db,password) {
       if(status!=='open') db.prepare('INSERT INTO comments(ticket_id,author_id,body) VALUES(?,?,?)').run(result.lastInsertRowid,2,'Здравствуйте! Обращение принято, уточняем детали.');
     }
     db.prepare('INSERT INTO tickets(subject,description,customer_id) VALUES(?,?,?)').run('Обращение другого клиента','Доступно сотруднику поддержки, но не первому клиенту.',3);
+    db.exec(`UPDATE tickets SET created_at=datetime('now','-12 hours'),updated_at=CURRENT_TIMESTAMP;
+      UPDATE tickets SET first_response_at=datetime(created_at,'+1 hour') WHERE status!='open';
+      UPDATE tickets SET resolved_at=datetime(created_at,'+6 hours') WHERE status IN ('resolved','closed');`);
     db.exec('COMMIT');
   } catch(error) {db.exec('ROLLBACK');throw error;}
 }

@@ -36,6 +36,8 @@ try {
   await page.screenshot({path:'screenshots/ticket-desktop.png',fullPage:true});
   await page.getByRole('button',{name:'Выйти',exact:true}).click();
   await login('agent@example.test');
+  await page.getByText('Первый ответ · SLA',{exact:true}).waitFor();
+  await page.screenshot({path:'screenshots/sla-analytics-desktop.png',fullPage:true});
   await page.getByRole('button',{name:'Проверка браузерного сценария',exact:true}).click();
   await page.getByLabel('Статус обращения').selectOption('resolved');
   await page.locator('#detail .muted').filter({hasText:'Решено'}).waitFor();

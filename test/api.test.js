@@ -33,6 +33,20 @@ test('authentication, ownership, staff workflow, CSRF and logout', async () => {
     db.prepare("UPDATE users SET role='agent' WHERE email=?").run('bob@example.com');
     assert.equal((await request(`/api/tickets/${ticket.id}`,'PATCH',{status:'resolved'},bob)).status,200);
     assert.equal(db.prepare('SELECT count(*) AS n FROM audit_events').get().n,1);
+    assert.equal((await request('/api/analytics','GET',null,alice)).status,403);
+    assert.ok(db.prepare('SELECT resolved_at FROM tickets WHERE id=?').get(ticket.id).resolved_at);
+    await request(`/api/tickets/${ticket.id}/comments`,'POST',{body:'Customer follow-up'},alice);
+    assert.equal(db.prepare('SELECT first_response_at FROM tickets WHERE id=?').get(ticket.id).first_response_at,null);
+    await request(`/api/tickets/${ticket.id}/comments`,'POST',{body:'Support response'},bob);
+    const first=db.prepare('SELECT first_response_at FROM tickets WHERE id=?').get(ticket.id).first_response_at;
+    assert.ok(first);
+    await request(`/api/tickets/${ticket.id}/comments`,'POST',{body:'Support response again'},bob);
+    assert.equal(db.prepare('SELECT first_response_at FROM tickets WHERE id=?').get(ticket.id).first_response_at,first);
+    const metrics=await (await request('/api/analytics','GET',null,bob)).json();
+    assert.equal(metrics.first_response.completed,1);
+    await request(`/api/tickets/${ticket.id}`,'PATCH',{status:'open'},bob);
+    assert.equal(db.prepare('SELECT resolved_at FROM tickets WHERE id=?').get(ticket.id).resolved_at,null);
+
     assert.equal((await request(`/api/tickets/${ticket.id}/comments`,'POST',{body:'Thank you'},alice)).status,201);
     assert.equal((await request('/api/auth/logout','POST',{},alice)).status,200);
     assert.equal((await request('/api/auth/me','GET',null,alice)).status,401);

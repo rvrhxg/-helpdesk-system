@@ -56,3 +56,11 @@ node --check public/app.js
 Это развивающийся проект, не готовый production-сервис: список разбит на страницы по 50 записей; поиск и фильтры выполняются на сервере, показатели охватывают все доступные обращения. Нет вложений, уведомлений, восстановления пароля, SLA и multi-tenant режима. В HTTP-обработчиках scrypt асинхронный; одновременно допускаются до четырёх запросов авторизации. Лимит входа хранится в памяти процесса. Для масштабирования нужны общий rate limiter, миграции и PostgreSQL. Не публикуйте чувствительные данные в демонстрационной установке.
 
 [Все проекты портфолио и инструкции запуска](docs/PORTFOLIO.md).
+
+## SLA
+
+Calendar hours UTC from ticket creation, first response / resolution: low 24/120 h, normal 8/72 h, high 2/24 h, urgent 0.5/4 h. Deadline equality is on time. First response means a staff comment, not a status change. Resolved/closed freezes resolution; reopening resets completion while keeping the original deadline and first response. No business-hour pauses or automatic notifications.
+
+Ticket GET responses include sla deadlines, elapsed_minutes, overdue and completed flags. Staff-only GET /api/analytics reports team-wide completed/pending counts, current overdue counts, breaches, average completed duration and on-time percentage (null with no completed sample). Dashboard indicators refresh on page load/refresh; analytics ignores list filters. These are team metrics, not individual performance rankings.
+
+Startup adds nullable first_response_at/resolved_at columns transactionally and preserves all existing records. Legacy response timestamps are inferred from comments by users who are currently staff; legacy resolution uses updated_at. Historical role changes and missing events limit backfill accuracy. New response timestamps are fixed at the action. Demo data is fictional.

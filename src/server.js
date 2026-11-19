@@ -1,3 +1,4 @@
+import { sla, analytics } from './sla.js';
 import http from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { pathToFileURL } from 'node:url';
@@ -97,6 +98,10 @@ export function createApp({ db, origin = process.env.APP_ORIGIN || 'http://local
         return send(200, { ok: true });
       }
       const staff = user.role !== 'customer';
+      if(path === '/api/analytics' && req.method === 'GET') {
+        if(!staff) fail(403,'Staff access required');
+        return send(200,analytics(db.prepare('SELECT * FROM tickets').all()));
+      }
       if (path === '/api/stats' && req.method === 'GET') {
         return send(200, db.prepare('SELECT status,count(*) AS count FROM tickets WHERE (? OR customer_id=?) GROUP BY status').all(staff ? 1 : 0,user.id));
       }
@@ -109,7 +114,7 @@ export function createApp({ db, origin = process.env.APP_ORIGIN || 'http://local
         const where = `(? OR customer_id=?) AND (subject LIKE ? OR description LIKE ?) AND (?='' OR status=?)`;
         const args = [staff ? 1 : 0,user.id,`%${search}%`,`%${search}%`,status,status];
         res.setHeader('X-Total-Count', String(db.prepare(`SELECT count(*) AS count FROM tickets WHERE ${where}`).get(...args).count));
-        return send(200, db.prepare(`SELECT * FROM tickets WHERE ${where} ORDER BY id DESC LIMIT 50 OFFSET ?`).all(...args,(page-1)*50));
+        return send(200, db.prepare(`SELECT * FROM tickets WHERE ${where} ORDER BY id DESC LIMIT 50 OFFSET ?`).all(...args,(page-1)*50).map(t=>({...t,sla:sla(t)})));
       }
       if (path === '/api/tickets' && req.method === 'POST') {
         const data = await body(req);
@@ -124,10 +129,11 @@ export function createApp({ db, origin = process.env.APP_ORIGIN || 'http://local
       if (match) {
         const ticket = db.prepare('SELECT * FROM tickets WHERE id=?').get(match[1]);
         if (!ticket || (!staff && ticket.customer_id !== user.id)) fail(404, 'Ticket not found');
-        if (req.method === 'GET') return send(200, match[2] ? db.prepare('SELECT c.*,u.name AS author_name FROM comments c JOIN users u ON u.id=c.author_id WHERE ticket_id=? ORDER BY c.id').all(ticket.id) : ticket);
+        if (req.method === 'GET') return send(200, match[2] ? db.prepare('SELECT c.*,u.name AS author_name FROM comments c JOIN users u ON u.id=c.author_id WHERE ticket_id=? ORDER BY c.id').all(ticket.id) : {...ticket,sla:sla(ticket)});
         if (match[2] && req.method === 'POST') {
           const data = await body(req);
           const result = db.prepare('INSERT INTO comments(ticket_id,author_id,body) VALUES(?,?,?)').run(ticket.id, user.id, field(data.body, 5000));
+          if(staff) db.prepare('UPDATE tickets SET first_response_at=COALESCE(first_response_at,CURRENT_TIMESTAMP) WHERE id=?').run(ticket.id);
           return send(201, db.prepare('SELECT * FROM comments WHERE id=?').get(result.lastInsertRowid));
         }
         if (!match[2] && req.method === 'PATCH') {
@@ -137,6 +143,7 @@ export function createApp({ db, origin = process.env.APP_ORIGIN || 'http://local
           db.exec('BEGIN');
           try {
             db.prepare('UPDATE tickets SET status=?,assignee_id=?,updated_at=CURRENT_TIMESTAMP WHERE id=?').run(data.status, user.id, ticket.id);
+            db.prepare("UPDATE tickets SET resolved_at=CASE WHEN ? IN ('resolved','closed') THEN COALESCE(resolved_at,CURRENT_TIMESTAMP) ELSE NULL END WHERE id=?").run(data.status,ticket.id);
             db.prepare('INSERT INTO audit_events(actor_id,ticket_id,action) VALUES(?,?,?)').run(user.id, ticket.id, `status:${ticket.status}->${data.status}`);
             db.exec('COMMIT');
           } catch (error) { db.exec('ROLLBACK'); throw error; }
