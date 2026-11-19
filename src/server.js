@@ -132,8 +132,14 @@ export function createApp({ db, origin = process.env.APP_ORIGIN || 'http://local
         if (req.method === 'GET') return send(200, match[2] ? db.prepare('SELECT c.*,u.name AS author_name FROM comments c JOIN users u ON u.id=c.author_id WHERE ticket_id=? ORDER BY c.id').all(ticket.id) : {...ticket,sla:sla(ticket)});
         if (match[2] && req.method === 'POST') {
           const data = await body(req);
-          const result = db.prepare('INSERT INTO comments(ticket_id,author_id,body) VALUES(?,?,?)').run(ticket.id, user.id, field(data.body, 5000));
-          if(staff) db.prepare('UPDATE tickets SET first_response_at=COALESCE(first_response_at,CURRENT_TIMESTAMP) WHERE id=?').run(ticket.id);
+          const text = field(data.body, 5000);
+          db.exec('BEGIN');
+          let result;
+          try {
+            result = db.prepare('INSERT INTO comments(ticket_id,author_id,body) VALUES(?,?,?)').run(ticket.id, user.id, text);
+            if(staff) db.prepare('UPDATE tickets SET first_response_at=COALESCE(first_response_at,CURRENT_TIMESTAMP) WHERE id=?').run(ticket.id);
+            db.exec('COMMIT');
+          } catch(error) {db.exec('ROLLBACK');throw error;}
           return send(201, db.prepare('SELECT * FROM comments WHERE id=?').get(result.lastInsertRowid));
         }
         if (!match[2] && req.method === 'PATCH') {
