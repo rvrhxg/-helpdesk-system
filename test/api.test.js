@@ -42,6 +42,12 @@ test('authentication, ownership, staff workflow, CSRF and logout', async () => {
     assert.ok(first);
     await request(`/api/tickets/${ticket.id}/comments`,'POST',{body:'Support response again'},bob);
     assert.equal(db.prepare('SELECT first_response_at FROM tickets WHERE id=?').get(ticket.id).first_response_at,first);
+    const countBefore=db.prepare('SELECT count(*) AS n FROM comments').get().n;
+    db.exec("CREATE TRIGGER reject_sla BEFORE UPDATE OF first_response_at ON tickets BEGIN SELECT RAISE(ABORT,'simulated write failure'); END");
+    assert.equal((await request(`/api/tickets/${ticket.id}/comments`,'POST',{body:'Must roll back'},bob)).status,500);
+    assert.equal(db.prepare('SELECT count(*) AS n FROM comments').get().n,countBefore);
+    db.exec('DROP TRIGGER reject_sla');
+
     const metrics=await (await request('/api/analytics','GET',null,bob)).json();
     assert.equal(metrics.first_response.completed,1);
     await request(`/api/tickets/${ticket.id}`,'PATCH',{status:'open'},bob);
