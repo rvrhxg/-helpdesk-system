@@ -29,7 +29,7 @@ function render() {
     const card = element('div',undefined,'metric'); card.append(element('small',title),element('strong',count),element('span',caption)); $('metrics').append(card);
   }
   const rows = tickets;
-  if(slaSummary&&user.role!=='customer'){for(const [label,key]of [['Первый ответ','first_response'],['Решение','resolution']]){const m=slaSummary[key],card=element('div',undefined,'metric');card.append(element('small',label+' · SLA'),element('strong',m.overdue_pending+' просрочено'),element('span',`Среднее: ${m.average_minutes===null?'—':Math.round(m.average_minutes)+' мин'} · В срок: ${m.on_time_percent===null?'—':Math.round(m.on_time_percent)+'%'}`));$('metrics').append(card);}}
+  if(slaSummary&&user.role!=='customer'){for(const [label,key]of [['Первый ответ','first_response'],['Решение','resolution']]){const m=slaSummary[key],card=element('div',undefined,'metric');card.append(element('small',label+' · SLA'),element('strong',m.overdue_pending),element('span',`Просрочено · Среднее: ${m.average_minutes===null?'—':Math.round(m.average_minutes)+' мин'} · В срок: ${m.on_time_percent===null?'—':Math.round(m.on_time_percent)+'%'}`));$('metrics').append(card);}}
   const footer = document.querySelector('.panel footer'); footer.replaceChildren();
   const prev = element('button','← Назад'); prev.disabled = page === 1;
   const next = element('button','Далее →'); next.disabled = page * 50 >= total;

@@ -44,6 +44,7 @@ try {
   await page.getByRole('button',{name:'Все обращения'}).click();
   await page.locator('#dashboard').waitFor({state:'visible'});
   await page.setViewportSize({width:390,height:844});
+  assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true);
   await page.screenshot({path:'screenshots/dashboard-mobile.png',fullPage:true});
   assert.deepEqual(errors,[]);
   console.log('Browser client create/comment, staff status and desktop/mobile captures passed.');
